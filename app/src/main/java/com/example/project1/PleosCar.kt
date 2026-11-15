@@ -3,13 +3,17 @@ package com.example.project1
 import ai.pleos.playground.vehicle.Vehicle
 import ai.pleos.playground.vehicle.api.model.area.SeatArea
 import ai.pleos.playground.vehicle.constant.area.SeatValue
-import ai.pleos.playground.vehicle.constant.control.VehicleGear
 import ai.pleos.playground.vehicle.listener.DistanceDrivenListener
 import ai.pleos.playground.vehicle.listener.EvBatteryStateOfChargeListener
 import ai.pleos.playground.vehicle.listener.FuelEconomyListener
-import ai.pleos.playground.vehicle.listener.GearSelectionListener
 import ai.pleos.playground.vehicle.listener.SeatBeltBuckledStateListener
 import ai.pleos.playground.vehicle.listener.SeatOccupancyListener
+import android.car.Car
+import android.car.VehicleGear
+import android.car.VehiclePropertyIds
+import android.car.drivingstate.CarUxRestrictionsManager
+import android.car.hardware.CarPropertyValue
+import android.car.hardware.property.CarPropertyManager
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -25,13 +29,26 @@ import androidx.compose.runtime.setValue
  * 에뮬레이터에서는 Virtual Console(http://127.0.0.1:8088)로 값을 바꿔서 테스트한다.
  */
 class PleosCar(context: Context) : CarSource {
+    private val appContext = context.applicationContext
     private val tag = "NbbangPleosCar"
     private val vehicle = Vehicle(context.applicationContext)
     private val main = Handler(Looper.getMainLooper())   // SDK 콜백은 다른 스레드 → 화면 값은 메인에서 바꾸기
 
     override var odometerKm by mutableDoubleStateOf(0.0)
     override var batteryPct by mutableDoubleStateOf(0.0)
-    override var gear by mutableStateOf(Gear.P)
+    /**
+     * 기어(P/D)와 주행 중 UX 제한은 Pleos 안내대로 AAOS 표준 Car API에서 받는다.
+     * - 기어 상태: 표준 데이터 → CarPropertyManager의 GEAR_SELECTION
+     * - 주행 중 제한: CarUxRestrictionsManager (distractionOptimized 선언 앱은 직접 확인해야 함)
+     * 둘 중 하나라도 "주행"이면 앱은 주행 화면(입력 막기, 확인은 정차 후)으로 동작한다.
+     */
+    private var rawGear by mutableStateOf(Gear.P)
+    var uxRestricted by mutableStateOf(false)
+        private set
+    override val gear: Gear get() = if (uxRestricted) Gear.D else rawGear
+    private var aaos: Car? = null
+    private var propManager: CarPropertyManager? = null
+    private var uxManager: CarUxRestrictionsManager? = null
     override var carFuelKmPerL by mutableStateOf<Double?>(null)
     override val isRealCar = true
 
@@ -73,11 +90,15 @@ class PleosCar(context: Context) : CarSource {
         override fun onFailed(e: Exception) { Log.w(tag, "soc failed", e) }
     }
 
-    private val gearListener = object : GearSelectionListener {
-        override fun onSelected(gear: VehicleGear?) {
-            gear?.let { g -> ui { this@PleosCar.gear = toAppGear(g); gearOk = true } }
+    private val gearCallback = object : CarPropertyManager.CarPropertyEventCallback {
+        override fun onChangeEvent(value: CarPropertyValue<*>) {
+            (value.value as? Int)?.let { g -> ui { rawGear = toAppGear(g); gearOk = true } }
         }
-        override fun onFailed(e: Exception) { Log.w(tag, "gear failed", e) }
+        override fun onErrorEvent(propertyId: Int, areaId: Int) { Log.w(tag, "gear error $propertyId") }
+    }
+
+    private val uxListener = CarUxRestrictionsManager.OnUxRestrictionsChangedListener { r ->
+        ui { uxRestricted = r.isRequiresDistractionOptimization }
     }
 
     private val fuelListener = object : FuelEconomyListener {
@@ -105,9 +126,28 @@ class PleosCar(context: Context) : CarSource {
         }
     }
 
-    /** P(주차)·N(중립)은 정차, 나머지(D, R, 1~9단)는 주행으로 본다 */
-    private fun toAppGear(g: VehicleGear): Gear =
+    /** P(주차)·N(중립)은 정차, 나머지(D, R, 1~9단)는 주행으로 본다 (AAOS VehicleGear 값) */
+    private fun toAppGear(g: Int): Gear =
         if (g == VehicleGear.GEAR_PARK || g == VehicleGear.GEAR_NEUTRAL) Gear.P else Gear.D
+
+    /** AAOS 표준 Car API 연결: 기어(GEAR_SELECTION) + 주행 중 UX 제한. 실패해도 앱은 계속 동작 */
+    private fun startAaos(context: Context) {
+        runCatching {
+            val car = Car.createCar(context.applicationContext) ?: return
+            aaos = car
+            val pm = car.getCarManager(Car.PROPERTY_SERVICE) as CarPropertyManager
+            propManager = pm
+            runCatching {
+                pm.getProperty<Int>(VehiclePropertyIds.GEAR_SELECTION, 0)?.value?.let { g -> ui { rawGear = toAppGear(g); gearOk = true } }
+            }.onFailure { Log.w(tag, "get gear", it) }
+            pm.registerCallback(gearCallback, VehiclePropertyIds.GEAR_SELECTION, CarPropertyManager.SENSOR_RATE_ONCHANGE)
+
+            val ux = car.getCarManager(Car.CAR_UX_RESTRICTION_SERVICE) as CarUxRestrictionsManager
+            uxManager = ux
+            ux.registerListener(uxListener)
+            ux.currentCarUxRestrictions?.let { r -> ui { uxRestricted = r.isRequiresDistractionOptimization } }
+        }.onFailure { Log.w(tag, "AAOS Car API 연결 실패 → 기어/UX 제한 없이 동작", it) }
+    }
 
     /** 차는 연비를 L/100km로 준다 → km/L로 바꾼다. 예) 8.0 L/100km → 100 ÷ 8.0 = 12.5 km/L */
     private fun setFuel(lPer100km: Float?) {
@@ -129,9 +169,7 @@ class PleosCar(context: Context) : CarSource {
         ev.getEvBatteryStateOfCharge({ v -> v?.let { ui { batteryPct = it.toDouble(); batteryOk = true } } }, { Log.w(tag, "get soc", it) })
         ev.registerEvBatteryStateOfCharge(socListener)
 
-        val gearApi = vehicle.getGear()
-        gearApi.getCurrentGearSelectionState({ g -> g?.let { ui { gear = toAppGear(it); gearOk = true } } }, { Log.w(tag, "get gear", it) })
-        gearApi.registerGearSelection(gearListener)
+        startAaos(appContext)
 
         // 휘발유 차량용: 누적 연비. 에뮬레이터(전기차)에서는 지원 안 함 → null 유지 → 설정 연비 사용
         val fuel = vehicle.getFuel()
@@ -151,7 +189,6 @@ class PleosCar(context: Context) : CarSource {
         runCatching {
             vehicle.getOdometer().unregisterDistanceDriven(distanceListener)
             vehicle.getEvBattery().unregisterEvBatteryStateOfCharge(socListener)
-            vehicle.getGear().unregisterGearSelection(gearListener)
             vehicle.getFuel().unregisterCumulativeFuelEconomy(fuelListener)
             val seatApi = vehicle.getSeat()
             for (s in Seats.TRACKED) {
@@ -160,6 +197,11 @@ class PleosCar(context: Context) : CarSource {
             }
         }
         vehicle.release()
+        runCatching {
+            propManager?.unregisterCallback(gearCallback)
+            uxManager?.unregisterListener()
+            aaos?.disconnect()
+        }
     }
 
     /** 좌석별 원래 신호 (착좌 센서, 안전벨트). null = 아직 신호 없음 */
