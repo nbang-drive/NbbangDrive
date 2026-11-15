@@ -26,10 +26,15 @@
 
 | SDK | 버전 | 사용처 |
 |---|---|---|
-| Vehicle SDK | 2.3.2 | 기어, 주행거리(Odometer), 배터리(SOC)·연비, 좌석 착좌·안전벨트 |
+| Vehicle SDK | 2.3.2 | 주행거리(Odometer), 배터리(SOC)·연비, 좌석 착좌·안전벨트 |
 | SpeechToText SDK (Gleo AI) | 2.1.3.2 | 탑승자 이름을 말로 입력 (선택 기능, 아래 "음성 입력 키" 참고) |
+| AAOS 표준 Car API | `android.car` | 기어 상태(`GEAR_SELECTION`, CarPropertyManager), 주행 중 UX 제한(`CarUxRestrictionsManager`) |
 
-선언한 권한: `CAR_DRIVE`, `CAR_ENERGY`, `CAR_SEATS`, `CAR_MILEAGE`, `STT_SERVICE`, `INTERNET`
+- Vehicle SDK: 좌석 착좌·안전벨트, 주행거리, 배터리·연비
+- 기어 상태는 Pleos 안내(표준 데이터는 AAOS Car API)에 따라 AAOS 표준 API로 읽습니다.
+- 주행 중 제한: `distractionOptimized`를 선언하고, 기어가 D이거나 `CarUxRestrictions`가 주행 최적화를 요구하면 키보드 입력을 막고 확인은 정차(P) 후에 처리합니다.
+
+선언한 권한: `pleos.car.permission.CAR_DRIVE`, `CAR_ENERGY`, `CAR_SEATS`, `CAR_MILEAGE`, `STT_SERVICE`, `android.car.permission.CAR_POWERTRAIN`, `INTERNET`
 
 ---
 
@@ -98,7 +103,7 @@ PLEOS_CLIENT_SECRET=발급받은_Client_Secret
 ```
 app/src/main/java/com/example/project1/
 ├── MainActivity.kt   앱 시작, Vehicle SDK·음성 입력 연결
-├── PleosCar.kt       Pleos Vehicle SDK 연동 (기어·주행거리·배터리·좌석)
+├── PleosCar.kt       Pleos Vehicle SDK 연동 (주행거리·배터리·좌석) + AAOS Car API (기어·UX 제한)
 ├── CarSource.kt      차량 데이터 공통 인터페이스
 ├── FakeVehicle.kt    SDK 연결 실패 시 쓰는 모의 차량
 ├── TripEngine.kt     구간 기록·정산 로직 (핵심)
