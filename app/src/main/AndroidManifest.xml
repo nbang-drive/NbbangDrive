@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 자동차(Android Automotive)용 앱 -->
+    <uses-feature
+        android:name="android.hardware.type.automotive"
+        android:required="true" />
+
+    <!-- Pleos Vehicle SDK 권한 (normal 등급이라 사용자에게 따로 묻지 않음) -->
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />   <!-- 기어, 주행거리 -->
+    <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />  <!-- 배터리, 연비 -->
+    <uses-permission android:name="pleos.car.permission.CAR_SEATS" />   <!-- 좌석 착좌, 안전벨트 -->
+    <uses-permission android:name="pleos.car.permission.CAR_MILEAGE" />
+
+    <!-- 음성으로 이름 넣기 (Gleo AI SpeechToText). 마이크는 차량 음성 서비스가 직접 다루므로
+         RECORD_AUDIO는 선언하지 않음 (Pleos 가이드: STT_SERVICE 하나만 필요) -->
+    <uses-permission android:name="pleos.car.permission.STT_SERVICE" />  <!-- 차 음성 인식 서비스 사용 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Project1">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Project1"
+            android:windowSoftInputMode="adjustPan">
+            <!-- 키보드가 뜨면 화면을 찌그러뜨리지 않고 통째로 위로 밀어 올림 (Pleos IME 가이드: 입력칸 있는 화면은 밀려 올라가야 함) -->
+            <!-- 운전 중(기어 D)에도 화면이 막히지 않도록: 큰 글씨 최소 정보만 보여주는 화면 -->
+            <meta-data
+                android:name="distractionOptimized"
+                android:value="true" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
