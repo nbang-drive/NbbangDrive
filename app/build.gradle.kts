@@ -13,6 +13,8 @@ plugins {
 
 android {
     namespace = "com.example.project1"
+    // AAOS 표준 Car API (기어 상태 GEAR_SELECTION, 주행 중 UX 제한 CarUxRestrictions)
+    useLibrary("android.car")
     compileSdk {
         version = release(37)
     }
@@ -71,7 +73,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("com.google.zxing:core:3.5.3")   // 정산 QR 만들기
-    implementation("ai.pleos.playground:Vehicle:2.3.2")   // Pleos Vehicle SDK (주행거리·기어·배터리·연비·좌석)
+    implementation("ai.pleos.playground:Vehicle:2.3.2")   // Pleos Vehicle SDK (주행거리·배터리·연비·좌석)
     implementation("ai.pleos.playground:SpeechToText:2.1.3.2")   // Gleo AI 음성 인식 (이름 말해서 넣기)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
