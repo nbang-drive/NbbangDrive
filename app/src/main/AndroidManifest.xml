@@ -8,10 +8,13 @@
         android:required="true" />
 
     <!-- Pleos Vehicle SDK 권한 (normal 등급이라 사용자에게 따로 묻지 않음) -->
-    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />   <!-- 기어, 주행거리 -->
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />   <!-- 주행거리 -->
     <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />  <!-- 배터리, 연비 -->
     <uses-permission android:name="pleos.car.permission.CAR_SEATS" />   <!-- 좌석 착좌, 안전벨트 -->
     <uses-permission android:name="pleos.car.permission.CAR_MILEAGE" />
+
+    <!-- 기어 상태(GEAR_SELECTION)는 Pleos 안내대로 AAOS 표준 Car API로 읽음 → 표준 파워트레인 읽기 권한 -->
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
 
     <!-- 음성으로 이름 넣기 (Gleo AI SpeechToText). 마이크는 차량 음성 서비스가 직접 다루므로
          RECORD_AUDIO는 선언하지 않음 (Pleos 가이드: STT_SERVICE 하나만 필요) -->
