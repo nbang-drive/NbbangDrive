@@ -2,7 +2,7 @@
 
 > 여러 사람이 차를 나눠 타고 이동할 때, 좌석 센서와 주행거리·전비/연비 데이터로 **누가 어느 구간을 탔는지 기록하고 기름값·충전비·통행료·주차비를 탄 만큼만 자동으로 나눠 주는** Pleos Connect 차량용 동승 비용 정산 앱입니다.
 
-현대자동차그룹 차량용 앱 개발 공모전 출품작입니다.
+현대자동차그룹 차량용 앱 개발 공모전 출품작입니다. (팀명: 정둘김둘 / JeongdulKimdul)
 
 ---
 
@@ -45,8 +45,9 @@
 
 ## APK 위치
 
-- **GitHub Releases → `v1.0`** 에 첨부된 `NbbangDrive-v1.0-release.apk`
-  (GitHub 웹 업로드 용량 제한 때문에 저장소 폴더가 아닌 Releases에 올렸습니다.)
+- **GitHub Release 링크: https://github.com/nbang-drive/NbbangDrive/releases/tag/v1.0**
+- 파일명: `JeongdulKimdul_NbbangDrive_release.apk` (release 빌드)
+- APK 용량(약 25.3MB)이 GitHub 웹 업로드 제한(25MB)을 넘어 저장소 `apk/` 폴더 대신 GitHub Releases에 등록했습니다.
 - 공개용 APK이므로 **API 키가 들어 있지 않습니다.** 음성 입력(마이크 버튼)만 꺼지고 나머지 기능은 모두 동작합니다.
 
 ---
@@ -55,7 +56,7 @@
 
 ### A. APK로 바로 실행
 1. Pleos Connect Emulator v2.1.0을 실행합니다.
-2. Releases에서 받은 APK를 에뮬레이터 화면에 끌어다 놓거나 `adb install NbbangDrive-v1.0-release.apk`로 설치합니다.
+2. 위 Release 링크에서 받은 APK를 에뮬레이터 화면에 끌어다 놓거나 `adb install JeongdulKimdul_NbbangDrive_release.apk`로 설치합니다.
 3. 앱 목록에서 **N빵 드라이브**를 실행합니다.
 
 ### B. 소스에서 빌드
